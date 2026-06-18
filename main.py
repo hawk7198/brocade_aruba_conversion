@@ -39,14 +39,14 @@ def x_to_y_converter(input_string):
 
 
 def main(brocade_config_path):
-	phy_sections = []
-	phy_dict = {}
+	physical_interface_sections = []
+	physical_interface_dict = {}
 	lag_sections = []
 	lag_list = []
 	l2_vlan_sections = []
-	vlan_dict = {}
+	l2_vlan_dict = {}
 	l3_vlan_sections = []
-	int_vlan_dict= {}
+	interface_vlan_dict= {}
 
 	with open(brocade_config_path, "r") as file:
 		file_content = file.read()
@@ -59,11 +59,11 @@ def main(brocade_config_path):
 			l2_vlan_sections.append(section)
 		elif section.split()[0] == "interface":
 			if section.split()[1] == "ethe":
-				phy_sections.append(section)
+				physical_interface_sections.append(section)
 			elif section.split()[1] == "ve":
 				l3_vlan_sections.append(section)
 	
-	for section in phy_sections:
+	for section in physical_interface_sections:
 		port_number = section.split()[2]
 		port_desc = ""
 		shutdown = False
@@ -73,14 +73,14 @@ def main(brocade_config_path):
 				port_desc = line.split()[1:]
 			elif line.split(0) == "disable":
 				shutdown = True
-		phy_dict[port_number] = {"description":port_desc, "trunk":False, "native":"1", "vlans":[], "lag":"", "shutdown":shutdown}
+		physical_interface_dict[port_number] = {"description":port_desc, "trunk":False, "native":"1", "vlans":[], "lag":"", "shutdown":shutdown}
 
 	for section in l2_vlan_sections:
 		vlan_num = section.split()[1]
 		vlan_desc = ""
 		if section.split()[2] == "name":
 			vlan_desc = "".join(section.split("\n")[0].split()[3:-2])
-		vlan_dict[vlan_num] = vlan_desc
+		l2_vlan_dict[vlan_num] = vlan_desc
 		section_break = section.split("tagged")
 		tagged_string = x_to_y_converter(section_break[1])
 		section_break[2] = " ".join(section_break[2].split()[1:])
@@ -89,11 +89,11 @@ def main(brocade_config_path):
 		untagged_list = untagged_string.split()
 		for interface in tagged_list:
 			if interface != "ethe":
-				phy_dict[interface]["vlans"].append(vlan_num)
-				phy_dict[interface]["trunk"] = True
+				physical_interface_dict[interface]["vlans"].append(vlan_num)
+				physical_interface_dict[interface]["trunk"] = True
 		for interface in untagged_list:
 			if interface != "ethe":
-				phy_dict[interface]["native"] = vlan_num
+				physical_interface_dict[interface]["native"] = vlan_num
 
 	for section in lag_sections:
 		section_num = 1
@@ -102,7 +102,7 @@ def main(brocade_config_path):
 		interface_list = section.split()
 		for interface in interface_list:
 			if interface != "trunk" and interface != "ethe":
-				phy_dict[interface]["lag"] = str(section_num)
+				physical_interface_dict[interface]["lag"] = str(section_num)
 		section_num += 1
 
 	for section in l3_vlan_sections:
@@ -118,5 +118,5 @@ def main(brocade_config_path):
 				helper_list.append(line)
 			elif line.split[0] == "port-name":
 				desc = line.split()[1:]
-		int_vlan_dict[vlan_num] = {"description":desc, "address":ip_address, "helpers":helper_list}
+		interface_vlan_dict[vlan_num] = {"description":desc, "address":ip_address, "helpers":helper_list}
 	
